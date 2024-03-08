@@ -1,0 +1,206 @@
+Imports System.Data.Odbc
+
+Public Class peminjaman
+
+    Private Sub peminjaman_Load(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles MyBase.Load
+        Call hapus() 'agar saat halaman menload belum ada data
+        Call idPeminjaman() 'untuk mengenerate id_peminjaman secara otomatis
+        Call ubahTanggal() 'untuk mengubah tanggal peminjaman dan jatuh tempo
+
+    End Sub
+
+    'kodingan sub
+
+    Sub idPeminjaman()
+        Call koneksi()
+        cmd = New OdbcCommand("select id_peminjaman from peminjaman order by id_peminjaman desc", conn)
+        dr = cmd.ExecuteReader
+        dr.Read()
+        If Not dr.HasRows Then
+            TextBox1.Text = Format(Today, "yyMMdd") + "001"
+        Else
+            If Microsoft.VisualBasic.Left(dr("id_peminjaman"), 6) = Format(Today, "yyMMdd") Then
+                TextBox1.Text = dr("id_peminjaman") + 1
+            Else
+                TextBox1.Text = Format(Today, "yyMMdd") + "001"
+            End If
+        End If
+    End Sub
+
+    Sub hapus()
+        TextBox2.Clear()
+        TextBox3.Clear()
+        TextBox4.Clear()
+        TextBox7.Clear()
+        TextBox8.Clear()
+        PictureBox1.Image = Nothing
+        ListBox1.Items.Clear()
+    End Sub
+
+    Sub hapusBuku()
+        TextBox2.Clear()
+        TextBox3.Clear()
+        TextBox4.Clear()
+        PictureBox1.Image = Nothing
+    End Sub
+
+    Sub tampilRiwayat()
+        Call koneksi()
+        cmd = New OdbcCommand("SELECT id_peminjaman, judul, tanggal_peminjaman, status_peminjaman FROM peminjaman inner join buku on peminjaman.id_buku = buku.id_buku where id_user='" & TextBox7.Text & "'", conn)
+        dr = cmd.ExecuteReader
+        ListBox1.Items.Clear()
+        If dr.HasRows Then
+            Do While dr.Read
+                ListBox1.Items.Add(dr("id_peminjaman") & Space(3) & dr("judul") & Space(3) & dr("tanggal_peminjaman") & Space(3) & dr("status_peminjaman"))
+            Loop
+        Else
+            ListBox1.Items.Add("Tidak ada riwayat buku yang dipinjam")
+        End If
+    End Sub
+
+    Sub ubahTanggal()
+        Dim hariIni As DateTime = DateTime.Now
+        TextBox5.Text = Format(hariIni, "yyyy-MM-dd")
+
+        Dim TujuhHari As DateTime = hariIni.AddDays(7)
+        TextBox6.Text = Format(TujuhHari, "yyyy-MM-dd")
+    End Sub
+
+    Sub panggilBuku()
+        Call koneksi()
+        cmd = New OdbcCommand("select * from buku where id_buku='" & TextBox2.Text & "'", conn)
+        dr = cmd.ExecuteReader
+        dr.Read()
+
+        If dr.HasRows Then
+            TextBox3.Text = dr("judul")
+            TextBox4.Text = dr("ketersediaan_buku")
+
+            On Error Resume Next
+            PictureBox1.Load(dr("gambar"))
+            PictureBox1.SizeMode = PictureBoxSizeMode.StretchImage
+        Else
+            MsgBox("Buku tidak ditemukan", MsgBoxStyle.Information, "informasi")
+            Call hapusBuku()
+        End If
+    End Sub
+
+    Sub panggilAnggota()
+        Call koneksi()
+        cmd = New OdbcCommand("select * from user where status='peminjam' and id_user='" & TextBox7.Text & "'", conn)
+        dr = cmd.ExecuteReader
+        dr.Read()
+    End Sub
+
+    Sub cekPeminjaman()
+        Call koneksi()
+        cmd = New OdbcCommand("select count(id_peminjaman) as hitungPeminjaman from peminjaman where id_user='" & TextBox7.Text & "' and status_peminjaman='dipinjam'", conn)
+        dr = cmd.ExecuteReader
+        dr.Read()
+    End Sub
+
+    'kodingan textbox
+
+
+    Private Sub TextBox2_KeyPress(ByVal sender As System.Object, ByVal e As System.Windows.Forms.KeyPressEventArgs) Handles TextBox2.KeyPress
+        TextBox2.MaxLength = 9
+
+        If e.KeyChar = Chr(13) Then
+            Call panggilBuku()
+            e.Handled = True
+        End If
+    End Sub
+
+    Private Sub TextBox7_KeyPress(ByVal sender As System.Object, ByVal e As System.Windows.Forms.KeyPressEventArgs) Handles TextBox7.KeyPress
+        TextBox7.MaxLength = 9
+
+        If e.KeyChar = Chr(13) Then
+            Call panggilAnggota()
+            e.Handled = True
+
+            If dr.HasRows Then
+                TextBox8.Text = dr("nama_lengkap")
+                Call tampilRiwayat()
+            Else
+                MsgBox("Anggota tidak ditemukan", MsgBoxStyle.Information, "Informasi")
+                TextBox7.Clear()
+                TextBox8.Clear()
+            End If
+        End If
+    End Sub
+
+    'kodinngan button
+
+    Private Sub btn_simpan_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btn_simpan.Click
+        If TextBox1.Text = "" Or TextBox2.Text = "" Or TextBox3.Text = "" Or TextBox4.Text = "" Or TextBox5.Text = "" Or TextBox6.Text = "" Or TextBox7.Text = "" Or TextBox8.Text = "" Then
+            MsgBox("Harap isi semua data!!", MsgBoxStyle.Information, "Informasi")
+            Exit Sub
+        End If
+
+        If TextBox4.Text = "Tidak Tersedia" Then
+            MsgBox("Buku tidak tersedia, Silahkan memilih buku yang lain", MsgBoxStyle.Information, "Informasi")
+            Call hapusBuku()
+            Exit Sub
+        End If
+
+        Call cekPeminjaman()
+        If dr("hitungPeminjaman") > 3 Then
+            MsgBox("Anggota sudah meminjam 3 buku", MsgBoxStyle.Information, "Informasi")
+            Call hapus()
+            Exit Sub
+        End If
+
+        Call koneksi()
+
+        Dim simpan As String = "insert into peminjaman values('" & TextBox1.Text & "', '" & TextBox7.Text & "', '" & TextBox2.Text & "', '" & TextBox5.Text & "', '" & TextBox6.Text & "', '', 'dipinjam',  'Belum Dikembalikan', '', '', '')"
+        cmd = New OdbcCommand(simpan, conn)
+        cmd.ExecuteNonQuery()
+
+        Dim UbahKetersediaan As String = "update buku set ketersediaan_buku='Tidak Tersedia' where id_buku='" & TextBox2.Text & "'"
+        cmd = New OdbcCommand(UbahKetersediaan, conn)
+        cmd.ExecuteNonQuery()
+
+        MsgBox("Data berhasil ditambahkan", MsgBoxStyle.Information, "Informasi")
+        Call hapusBuku()
+        Call idPeminjaman()
+        Call tampilRiwayat()
+
+    End Sub
+
+
+    Private Sub btn_cari_buku_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btn_cari_buku.Click
+        list_buku.Show()
+        list_buku.btn_lihat.Visible = False
+        list_buku.btn_pinjam.Visible = True
+    End Sub
+
+    Private Sub btn_cari_anggota_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btn_cari_anggota.Click
+        list_anggota.Show()
+    End Sub
+
+    Private Sub btn_batal_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btn_batal.Click
+        Call hapus()
+    End Sub
+
+    Private Sub btn_tutup_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btn_tutup.Click
+        Me.Close()
+    End Sub
+
+    'kodingan listbox
+
+    Private Sub ListBox1_SelectedIndexChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles ListBox1.SelectedIndexChanged
+        Call koneksi()
+        cmd = New OdbcCommand("select * from peminjaman inner join buku on peminjaman.id_buku = buku.id_buku where id_peminjaman='" & Microsoft.VisualBasic.Left(ListBox1.Text, 9) & "'", conn)
+        dr = cmd.ExecuteReader
+        dr.Read()
+        If dr.HasRows Then
+            TextBox2.Text = dr("id_buku")
+            TextBox3.Text = dr("judul")
+            TextBox4.Text = dr("ketersediaan_buku")
+
+            On Error Resume Next
+            PictureBox1.Load(dr("gambar"))
+            PictureBox1.SizeMode = PictureBoxSizeMode.StretchImage
+        End If
+    End Sub
+End Class
