@@ -1,0 +1,218 @@
+Imports System.Data.Odbc
+
+Public Class pengembalian
+
+    Private Sub pengembalian_Load(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles MyBase.Load
+        TextBox3.Text = Format(Today, "yyyy-MM-dd")
+
+        Call hapus()
+
+    End Sub
+
+    'kodingan variabel
+
+    Dim DendaTerlambat As Integer = 0
+    Dim DendaKondisi As Integer = 0
+    Dim TotalDenda As Integer = 0
+
+    Dim jatuhTempo As Date
+    Dim kondisiBuku As String
+
+    'kodingan sub
+
+    Sub hapus()
+        TextBox2.Clear()
+        TextBox4.Clear()
+        TextBox5.Clear()
+        TextBox6.Clear()
+        TextBox7.Clear()
+        TextBox8.Clear()
+
+        ComboBox1.Text = ""
+        ComboBox2.Text = ""
+
+        ComboBox2.Enabled = False
+        TextBox7.ReadOnly = True
+
+        PictureBox1.Image = Nothing
+    End Sub
+
+    Sub hitungKeterlambatan()
+        Dim tanggalKembali As Date = TextBox3.Text
+        Dim denda As Integer = 5000
+
+        If tanggalKembali <= jatuhTempo Then
+            TextBox5.Text = "Tepat Waktu"
+
+            DendaTerlambat = 0
+
+            Call hitungDenda()
+        Else
+            Dim selisihHari As Integer = (tanggalKembali - jatuhTempo).Days
+            TextBox5.Text = "Terlambat " & selisihHari & " Hari"
+
+            DendaTerlambat = denda * selisihHari
+
+            Call hitungDenda()
+        End If
+    End Sub
+
+
+    Sub hitungDenda()
+        TotalDenda = DendaTerlambat + DendaKondisi
+        TextBox6.Text = TotalDenda
+    End Sub
+
+    Sub panggilPeminjaman()
+        Call koneksi()
+
+        cmd = New OdbcCommand("select * from user where id_user='" & TextBox1.Text & "' and status='peminjam'", conn)
+        dr = cmd.ExecuteReader
+        dr.Read()
+
+        If Not dr.HasRows Then
+            MsgBox("Kode anggota tidak ditemukan!!", MsgBoxStyle.Information, "Informasi")
+            Exit Sub
+        Else
+            cmd = New OdbcCommand("select * from peminjaman where id_user='" & TextBox1.Text & "' and status_peminjaman='dipinjam'", conn)
+            dr = cmd.ExecuteReader
+            ComboBox1.Items.Clear()
+            ComboBox1.Text = ""
+
+            If dr.HasRows Then
+                Do While dr.Read()
+                    ComboBox1.Items.Add(dr("id_peminjaman"))
+                Loop
+                ComboBox1.Enabled = True
+                ComboBox1.Focus()
+            Else
+                ComboBox1.Text = "Anggota tidak meminjam buku apapun"
+                ComboBox1.Enabled = False
+            End If
+        End If
+    End Sub
+
+    'kodingan textbox
+
+    Private Sub TextBox1_KeyPress(ByVal sender As System.Object, ByVal e As System.Windows.Forms.KeyPressEventArgs) Handles TextBox1.KeyPress
+        TextBox1.MaxLength = 9
+
+        If e.KeyChar = Chr(13) Then
+            Call panggilPeminjaman()
+            e.Handled = True
+        End If
+    End Sub
+
+    Private Sub TextBox7_KeyPress(ByVal sender As System.Object, ByVal e As System.Windows.Forms.KeyPressEventArgs) Handles TextBox7.KeyPress
+        TextBox7.MaxLength = 15
+
+        If e.KeyChar = Chr(13) Then
+            e.Handled = True
+            Dim kembali As String = TextBox7.Text - TextBox6.Text
+
+            If kembali >= 0 Then
+                TextBox8.Text = kembali
+            Else
+                MsgBox("Pembayaran Kurang", MsgBoxStyle.Information, "Informasi")
+            End If
+
+        End If
+    End Sub
+
+    'kodingan combobox
+
+    Private Sub ComboBox1_SelectedIndexChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles ComboBox1.SelectedIndexChanged
+        Call koneksi()
+        cmd = New OdbcCommand("select * from peminjaman inner join buku on peminjaman.id_buku = buku.id_buku where id_peminjaman='" & ComboBox1.Text & "'", conn)
+        dr = cmd.ExecuteReader
+        dr.Read()
+
+        If dr.HasRows Then
+            jatuhTempo = dr("jatuh_tempo")
+
+            TextBox2.Text = dr("id_buku")
+            TextBox4.Text = Format(jatuhTempo, "yyyy-MM-dd")
+            PictureBox1.Load(dr("gambar"))
+            PictureBox1.SizeMode = PictureBoxSizeMode.StretchImage
+
+            Call hitungKeterlambatan()
+
+            ComboBox2.Enabled = True
+        End If
+    End Sub
+
+    Private Sub ComboBox2_SelectedIndexChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles ComboBox2.SelectedIndexChanged
+        Call koneksi()
+        cmd = New OdbcCommand("select harga from buku where id_buku='" & TextBox2.Text & "'", conn)
+        dr = cmd.ExecuteReader
+        dr.Read()
+
+        Dim hargaBuku As Integer = dr("harga")
+
+        If ComboBox2.Text = "Baik" Then
+            kondisiBuku = "Baik"
+            DendaKondisi = 0
+            Call hitungDenda()
+        ElseIf ComboBox2.Text = "Rusak < 25%" Then
+            kondisiBuku = "Rusak"
+            DendaKondisi = hargaBuku * 25 / 100
+            Call hitungDenda()
+        ElseIf ComboBox2.Text = "Rusak < 50%" Then
+            kondisiBuku = "Rusak"
+            DendaKondisi = hargaBuku * 50 / 100
+            Call hitungDenda()
+        ElseIf ComboBox2.Text = "Rusak < 75%" Then
+            kondisiBuku = "Rusak"
+            DendaKondisi = hargaBuku
+            Call hitungDenda()
+        ElseIf ComboBox2.Text = "Hilang" Then
+            kondisiBuku = "Hilang"
+            DendaKondisi = hargaBuku
+            Call hitungDenda()
+        Else
+            MsgBox("Kondisi tidak valid!!", MsgBoxStyle.Information, "Informasi")
+        End If
+
+        TextBox7.Clear()
+        TextBox8.Clear()
+        TextBox7.ReadOnly = False
+
+    End Sub
+
+    'kodingan button
+
+    Private Sub btn_cari_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btn_cari.Click
+        list_anggota.Show()
+    End Sub
+
+    Private Sub btn_simpan_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btn_simpan.Click
+        If TextBox1.Text = "" Or ComboBox1.Text = "" Or ComboBox2.Text = "" Or TextBox7.Text = "" Or TextBox8.Text = "" Then
+            MsgBox("Harap isi semua data", MsgBoxStyle.Information, "Informasi")
+
+        Else
+
+            Dim updatePeminjaman As String = "update peminjaman set tanggal_pengembalian='" & Format(Today, "yyyy-MM-dd") & "', status_peminjaman='dikembalikan', kondisi_buku='" & kondisiBuku & "', denda='" & TextBox6.Text & "', dibayar='" & TextBox7.Text & "', kembali='" & TextBox8.Text & "' where id_peminjaman='" & ComboBox1.Text & "'"
+            cmd = New OdbcCommand(updatePeminjaman, conn)
+            cmd.ExecuteNonQuery()
+
+            If Not kondisiBuku = "Hilang" Then
+                Dim updateBuku As String = "update buku set ketersediaan_buku='Tersedia' where id_buku='" & TextBox2.Text & "'"
+                cmd = New OdbcCommand(updateBuku, conn)
+                cmd.ExecuteNonQuery()
+            End If
+
+            MsgBox("Buku berhasil dikembalikan", MsgBoxStyle.Information, "Informasi")
+            Call hapus()
+            Call panggilPeminjaman()
+        End If
+    End Sub
+
+    Private Sub btn_batal_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btn_batal.Click
+        Call hapus()
+
+    End Sub
+
+    Private Sub btn_tutup_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btn_tutup.Click
+        Me.Close()
+    End Sub
+End Class
