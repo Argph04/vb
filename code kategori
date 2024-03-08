@@ -1,0 +1,116 @@
+Imports System.Data.Odbc
+
+Public Class kategori
+
+    Private Sub kategori_Load(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles MyBase.Load
+        Call tampil_grid()
+
+    End Sub
+
+    'kodingan sub
+
+    Sub hapus()
+        TextBox2.Clear()
+    End Sub
+
+    Sub panggilKode()
+        Call koneksi()
+        cmd = New OdbcCommand("select * from kategori_buku where id_kategori = '" & TextBox1.Text & "'", conn)
+        dr = cmd.ExecuteReader
+        dr.Read()
+    End Sub
+
+    Sub panggilData()
+        TextBox2.Text = dr("nama_kategori")
+    End Sub
+
+    Sub tampil_grid()
+        Call koneksi()
+        da = New OdbcDataAdapter("select * from kategori_buku", conn)
+        ds = New DataSet
+        da.Fill(ds)
+        DGV.DataSource = ds.Tables(0)
+        DGV.ReadOnly = True
+    End Sub
+
+    'kodingan textbox
+
+    Private Sub TextBox1_KeyPress(ByVal sender As System.Object, ByVal e As System.Windows.Forms.KeyPressEventArgs) Handles TextBox1.KeyPress
+        TextBox1.MaxLength = 20
+
+        If e.KeyChar = Chr(13) Then
+            TextBox2.Focus()
+            e.Handled = True
+            Call panggilKode()
+            If dr.HasRows Then
+                Call panggilData()
+            Else
+                Call hapus()
+            End If
+        End If
+    End Sub
+
+
+    Private Sub TextBox2_KeyPress(ByVal sender As System.Object, ByVal e As System.Windows.Forms.KeyPressEventArgs) Handles TextBox2.KeyPress
+        TextBox2.MaxLength = 20
+
+        If e.KeyChar = Chr(13) Then
+            Button1.Focus()
+            e.Handled = True
+        End If
+    End Sub
+
+    'kodingan button
+
+    Private Sub Button1_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button1.Click
+        If TextBox1.Text = "" Or TextBox2.Text = "" Then
+            MsgBox("Harap isi semua data!!", MsgBoxStyle.Information, "Informasi")
+        End If
+
+        Call panggilKode()
+
+        If Not dr.HasRows Then
+            Dim simpan As String = "insert into kategori_buku values('" & TextBox1.Text & "', '" & TextBox2.Text & "')"
+            cmd = New OdbcCommand(simpan, conn)
+            cmd.ExecuteNonQuery()
+            MsgBox("Data berhasil disimpan!!", MsgBoxStyle.Information, "Informasi")
+        Else
+            Dim edit As String = "update kategori_buku set nama_kategori='" & TextBox2.Text & "' where id_kategori='" & TextBox1.Text & "'"
+            cmd = New OdbcCommand(edit, conn)
+            cmd.ExecuteNonQuery()
+            MsgBox("Data berhasil diedit!!", MsgBoxStyle.Information, "Informasi")
+        End If
+        Call tampil_grid()
+        Call hapus()
+        TextBox1.Clear()
+        TextBox1.Focus()
+    End Sub
+
+    Private Sub Button2_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button2.Click
+        If TextBox1.Text = "" Or TextBox2.Text = "" Then
+            MsgBox("Harap isi semua data!!", MsgBoxStyle.Information, "Informasi")
+        End If
+
+        If MessageBox.Show("apakah yakin data akan dihapus", "Warning", MessageBoxButtons.YesNo) = Windows.Forms.DialogResult.Yes Then
+            Dim hapus As String = "delete from kategori_buku where id_kategori='" & TextBox1.Text & "'"
+            cmd = New OdbcCommand(hapus, conn)
+            cmd.ExecuteNonQuery()
+            MsgBox("Data berhasil dihapus", MsgBoxStyle.Information, "Informasi")
+        End If
+        Call hapus()
+        Call tampil_grid()
+        TextBox1.Clear()
+        TextBox1.Focus()
+
+    End Sub
+
+    Private Sub Button3_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button3.Click
+        Call hapus()
+        TextBox1.Clear()
+        TextBox1.Focus()
+    End Sub
+
+    Private Sub Button4_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button4.Click
+        Me.Close()
+    End Sub
+End Class
