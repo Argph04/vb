@@ -1,14 +1,23 @@
 Imports System.Data.Odbc
 Public Class login
-    'kodingan untuk tanggal
-    Private Sub login_Load(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles MyBase.Load
-        lbltanggal.Text = Today
-    End Sub
-    'kodingan untuk jam
+
     Private Sub Timer1_Tick(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Timer1.Tick
         lbljam.Text = TimeOfDay
     End Sub
-    'codingan show password
+
+    Private Sub login_Load(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles MyBase.Load
+        lbltanggal.Text = Today
+    End Sub
+    'tombol untuk menuju register
+    Private Sub Label9_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Label9.Click
+        register.Show()
+        Me.Hide()
+    End Sub
+
+    Private Sub Button1_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button1.Click
+        Me.Close()
+    End Sub
+    'tombol untuk memunculkan kata sandi
     Private Sub CheckBox1_CheckedChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles CheckBox1.CheckedChanged
         If CheckBox1.Checked Then
             TextBox2.PasswordChar = ""
@@ -16,120 +25,154 @@ Public Class login
             TextBox2.PasswordChar = "*"
         End If
     End Sub
-    'kodingan variabel
     Dim dicoba As String
-
-    'kodingan sub
 
     Sub hapus()
         TextBox1.Clear()
         TextBox1.Focus()
         TextBox2.Clear()
-        ComboBox1.Text = "peminjaman"
+        ComboBox1.Text = ""
     End Sub
-    'kodingan untuk textbox1 (harus keypress)
+
     Private Sub TextBox1_KeyPress(ByVal sender As Object, ByVal e As System.Windows.Forms.KeyPressEventArgs) Handles TextBox1.KeyPress
         If e.KeyChar = Chr(13) Then
             TextBox2.Focus()
             e.Handled = True
         End If
-
     End Sub
-    'kodingan textbox2 (harus keypress)
+
     Private Sub TextBox2_KeyPress(ByVal sender As Object, ByVal e As System.Windows.Forms.KeyPressEventArgs) Handles TextBox2.KeyPress
         TextBox2.MaxLength = 20
         If e.KeyChar = Chr(13) Then
             ComboBox1.Focus()
             e.Handled = True
         End If
-
     End Sub
-    'kodingan combobox
+
     Private Sub ComboBox1_SelectedIndexChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles ComboBox1.SelectedIndexChanged
-        btn_exit.Focus()
-    End Sub
-    'kodingan button keluar
-    Private Sub Button1_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btn_exit.Click
-        Me.Close()
-    End Sub
-    'kodingan button masuk
-    
-
-    Private Sub Label10_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Label10.Click
-        register.Show()
-        Me.Hide()
+        Button1.Focus()
     End Sub
 
-    Private Sub Button2_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btn_masuk.Click
+    Private Sub Button2_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button2.Click
         If TextBox1.Text = "" Or TextBox2.Text = "" Or ComboBox1.Text = "" Then
-            MsgBox("Harap isi semua data!!", MsgBoxStyle.Information, "Informasi")
+
+            MsgBox("Harap isi semua Data", MsgBoxStyle.Information, "INFORMASI")
+
         Else
+
             Call koneksi()
 
-            cmd = New OdbcCommand("select * from user where id_user='" & TextBox1.Text & "' and password='" & TextBox2.Text & "' and status='" & ComboBox1.Text & "'", conn)
+            cmd = New OdbcCommand("select * from user where id_user= '" & TextBox1.Text & "' and password='" & TextBox2.Text & "' and status='" & ComboBox1.Text & "'", conn)
+
             dr = cmd.ExecuteReader
+
             dr.Read()
 
+
+
             If Not dr.HasRows Then
-                cmd = New OdbcCommand("select * from user where email='" & TextBox1.Text & "' and password='" & TextBox2.Text & "' and status='" & ComboBox1.Text & "'", conn)
+
+                cmd = New OdbcCommand("select * from user where email= '" & TextBox1.Text & "' and password='" & TextBox2.Text & "' and status='" & ComboBox1.Text & "'", conn)
+
                 dr = cmd.ExecuteReader
+
                 dr.Read()
 
+
+
                 If Not dr.HasRows Then
+
                     dicoba = dicoba + 1
+
                     MsgBox("Login Gagal")
+
                     TextBox2.Focus()
+
                     If dicoba > 2 Then
+
                         Call hapus()
-                        MsgBox("Percobaan Login Telah Gagal Lebih Dari 3 Kali, Silahkan Coba Lagi", MsgBoxStyle.Critical, "Peringatan")
+
+                        MsgBox("Anda Telah Gagal 3x Silahkan Coba Lagi Nanti", MsgBoxStyle.Critical, "PERINGATAN")
                         End
                     End If
                     Exit Sub
                 End If
+
             End If
 
-            Me.Visible = False
-            home.Show()
-            Call hapus()
-            home.Label2.Text = Format("Nama   : " & dr("nama_lengkap"))
-            home.Label3.Text = Format("Status : " & dr("status"))
-
-            home.panel1.Text = dr("id_user")
-            home.panel2.Text = dr("nama_lengkap")
-            home.panel3.Text = dr("status")
-
-            cmd = New OdbcCommand("select * from koleksi_pribadi inner join buku on koleksi_pribadi.id_buku = buku.id_buku where id_user='" & dr("id_user") & "'", conn)
-            dr = cmd.ExecuteReader
-            home.ListBox1.Items.Clear()
-            Do While dr.Read
-                home.ListBox1.Items.Add(dr("id_buku") & Space(2) & dr("judul"))
-            Loop
-
-
-            If home.panel3.Text = "admin" Then
-                'admin (Tidak Bisa Peminjaman/Pengembalian)
-                'home.GroupBox8.Visible = False
-
-            ElseIf home.panel3.Text = "petugas" Then
-                'Petugas (Tidak Bisa Registrasi dan Peminjaman/Pengembalian)
-                'groupbox8 yang isinya ada cari buku dan peminjaman
-                home.GroupBox8.Visible = False
-                home.btn_user.Visible = False
-                'groupbox5 yang menu
-                home.GroupBox5.Width = 167
-
-            ElseIf home.panel3.Text = "peminjam" Then
-                'Tidak Bisa Laporan
-                'groupbox7 yang isinya ada cari data peminjaman dan data buku
-                home.GroupBox7.Visible = False
-                'groupbox5 yang menu
-                home.GroupBox5.Visible = False
-
-                'Hapus TabPage
-
-                home.TabControl1.TabPages.Remove(home.TabControl1.TabPages(0))
-            End If
-            Call hapus()
         End If
+
+
+
+        Me.Visible = False
+
+        home.Show()
+
+        home.Label2.Text = Format("Nama    : " & dr("nama_lengkap"))
+        home.Label3.Text = Format("Status    : " & dr("status"))
+
+
+
+        home.Panel1.Text = dr("id_user")
+
+        home.Panel2.Text = dr("status")
+
+        home.panel3.Text = dr("email")
+
+
+
+        cmd = New OdbcCommand("select * from koleksi_pribadi inner join buku on koleksi_pribadi.id_buku = buku.id_buku where id_user='" & dr("id_user") & "'", conn)
+
+        dr = cmd.ExecuteReader
+
+        'Home.ListBox1.Items.Clear()
+
+        Do While dr.Read
+
+            '   Home.ListBox1.Items.Add(dr("id_buku") & Space(2) & dr("judul"))
+
+        Loop
+
+
+
+        If home.panel3.Text = "admin" Then
+
+            'Admin (Tidak bisa Peminjaman/Pengembalian)
+
+            'Home.GroupBox8.Visible = False
+
+
+
+        ElseIf home.panel3.Text = "petugas" Then
+
+            'Perugas (Tidak bisa registrasi, Peminjaman/Pengembalian)
+
+            'Home.GroupBox8.Visible = False
+
+            'Home.btn_user.Visible = False
+
+            'Home.GroupBox6.Width = 167
+
+
+
+        ElseIf home.panel3.Text = "peminjam" Then
+
+            'Tidak Bisa laporan
+
+            ' Home.GroupBox7.Text = False
+
+            'Home.GroupBox6.Text = False
+
+
+
+            'hapus tappage
+
+            'Home.TabControl1.TabPages.Remove(Home.TabControl1.TabPages(0))
+
+        End If
+
+        Call hapus()
+
     End Sub
+
 End Class
