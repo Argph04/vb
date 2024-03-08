@@ -1,0 +1,50 @@
+Imports System.Data.Odbc
+Module Module1
+    Public conn As OdbcConnection
+    Public ds As DataSet
+    Public cmd As OdbcCommand
+    Public da As OdbcDataAdapter
+    Public dr As OdbcDataReader
+
+    Public Sub koneksi()
+        conn = New OdbcConnection("Dsn=perpustakaan")
+        conn.Open()
+    End Sub
+
+    Sub tampilGrid_Buku()
+        Call koneksi()
+        da = New OdbcDataAdapter("select * from buku", conn)
+        ds = New DataSet
+        da.Fill(ds)
+        home.DGV_buku.DataSource = ds.Tables(0)
+        home.DGV_buku.ReadOnly = True
+    End Sub
+
+    Sub tampilGrid_Member()
+        Call koneksi()
+        da = New OdbcDataAdapter("select * from user where status='peminjam'", conn)
+        ds = New DataSet
+        da.Fill(ds)
+        home.DGV_member.DataSource = ds.Tables(0)
+        home.DGV_member.ReadOnly = True
+    End Sub
+
+    Sub tampilGrid_Ulasan()
+        Call koneksi()
+        da = New OdbcDataAdapter("select * from ulasan_buku", conn)
+        ds = New DataSet
+        da.Fill(ds)
+        home.DGV_ulasan.DataSource = ds.Tables(0)
+        home.DGV_ulasan.ReadOnly = True
+    End Sub
+
+    Sub tampil_koleksi_pribadi()
+        cmd = New OdbcCommand("select * from koleksi_pribadi inner join buku on koleksi_pribadi.id_buku = buku.id_buku where id_user='" & home.Panel1.Text & "'", conn)
+        dr = cmd.ExecuteReader
+        home.ListBox1.Items.Clear()
+        Do While dr.Read
+            home.ListBox1.Items.Add(dr.Item("id_buku") & Space(2) & dr.Item("judul"))
+        Loop
+    End Sub
+
+End Module
