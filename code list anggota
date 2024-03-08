@@ -1,0 +1,60 @@
+Imports System.Data.Odbc
+Public Class list_anggota
+
+    Private Sub list_anggota_Load(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles MyBase.Load
+        Call listAnggota()
+    End Sub
+
+    Dim idUser As String
+
+    Sub listAnggota()
+        Call koneksi()
+        cmd = New OdbcCommand("select * from user where status='peminjam'", conn)
+        dr = cmd.ExecuteReader
+        ListBox1.Items.Clear()
+        Do While dr.Read
+            ListBox1.Items.Add(dr.Item("id_user") & Space(5) & dr.Item("nama_lengkap") & Space(5) & dr.Item("email") & Space(5) & dr.Item("no_telepon"))
+        Loop
+    End Sub
+
+    'kodingan textbox
+
+    Private Sub TextBox1_MouseClick(ByVal sender As System.Object, ByVal e As System.Windows.Forms.MouseEventArgs) Handles TextBox1.MouseClick
+        If TextBox1.Text = "Cari buku berdasarkan Id, Nama, Email, No Telepon" Then
+            TextBox1.Clear()
+        End If
+    End Sub
+
+    Private Sub TextBox1_Leave(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles TextBox1.Leave
+        If TextBox1.Text = "" Then
+            TextBox1.Text = "Cari buku berdasarkan Id, Nama, Email, No Telepon"
+        End If
+    End Sub
+
+
+    'kodingan listbox
+
+    Private Sub ListBox1_SelectedIndexChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles ListBox1.SelectedIndexChanged
+        Call koneksi()
+        cmd = New OdbcCommand("select * from user where id_user='" & Microsoft.VisualBasic.Left(ListBox1.Text, 9) & "'", conn)
+        dr = cmd.ExecuteReader
+        dr.Read()
+
+        If dr.HasRows Then
+
+            idUser = dr("id_user")
+
+            'untuk di peminjaman
+            peminjaman.TextBox7.Text = idUser
+            peminjaman.TextBox8.Text = dr("nama_lengkap")
+            Call peminjaman.tampilRiwayat()
+
+            'untuk pengembalian
+            Call pengembalian.hapus()
+            pengembalian.TextBox1.Text = idUser
+
+            Call pengembalian.panggilPeminjaman()
+            Me.Close()
+        End If
+    End Sub
+End Class
