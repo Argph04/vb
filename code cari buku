@@ -1,0 +1,214 @@
+Imports System.Data.Odbc
+
+Public Class cari_buku
+
+    Private Sub cari_buku_Load(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles MyBase.Load
+
+        btn_tmb_ulasan.Enabled = False
+        btn_btl.Enabled = False
+        TextBox8.ReadOnly = True
+
+        btn_tmb_koleksi.Enabled = False
+        btn_hps_koleksi.Enabled = False
+        btn_pinjam.Enabled = False
+
+
+        Call hapus()
+        PictureBox1.Image = Nothing
+        DGV.DataSource = Nothing
+    End Sub
+
+    'kodingan sub
+
+    Sub hapus()
+        TextBox2.Clear()
+        TextBox3.Clear()
+        TextBox4.Clear()
+        TextBox5.Clear()
+        TextBox6.Clear()
+        TextBox7.Clear()
+    End Sub
+
+    Sub panggilKode()
+        Call koneksi()
+        cmd = New OdbcCommand("select * from buku where id_buku='" & TextBox1.Text & "'", conn)
+        dr = cmd.ExecuteReader
+        dr.Read()
+
+    End Sub
+
+    Sub panggilData()
+        TextBox2.Text = dr("judul")
+        TextBox3.Text = dr("penulis")
+        TextBox4.Text = dr("penerbit")
+        TextBox5.Text = dr("tahun_terbit")
+        TextBox6.Text = dr("ketersediaan_buku")
+        TextBox7.Text = dr("lokasi")
+
+        On Error Resume Next
+        PictureBox1.Load(dr("gambar"))
+        PictureBox1.SizeMode = PictureBoxSizeMode.StretchImage
+    End Sub
+
+    Sub tampilGrid()
+        Call koneksi()
+        da = New OdbcDataAdapter("select nama_lengkap, ulasan from ulasan_buku inner join user on ulasan_buku.id_user = user.id_user where ulasan_buku.id_buku='" & TextBox1.Text & "'", conn)
+        ds = New DataSet
+        da.Fill(ds)
+        DGV.DataSource = ds.Tables(0)
+        DGV.ReadOnly = True
+        DGV.Columns("nama_lengkap").Width = 150
+        DGV.Columns("ulasan").Width = 450
+    End Sub
+
+
+    Sub koleksiPribadi()
+        btn_tmb_koleksi.Enabled = True
+        btn_hps_koleksi.Enabled = True
+
+        Call koneksi()
+        cmd = New OdbcCommand("select * from koleksi_pribadi where id_user='" & home.Panel1.Text & "' and id_buku='" & TextBox1.Text & "'", conn)
+        dr = cmd.ExecuteReader
+        dr.Read()
+
+        If dr.HasRows Then
+            btn_hps_koleksi.Visible = True
+            btn_tmb_koleksi.Visible = False
+        Else
+            btn_tmb_koleksi.Visible = True
+            btn_hps_koleksi.Visible = False
+        End If
+    End Sub
+
+    'kodingan textbox
+
+    Private Sub TextBox1_KeyPress(ByVal sender As System.Object, ByVal e As System.Windows.Forms.KeyPressEventArgs) Handles TextBox1.KeyPress
+        TextBox1.MaxLength = 20
+
+        If e.KeyChar = Chr(13) Then
+            Call panggilKode()
+
+            If dr.HasRows Then
+                Call panggilData()
+                If dr("ketersediaan_buku") = "Tersedia" Then
+                    btn_pinjam.Enabled = True
+                Else
+                    btn_pinjam.Enabled = False
+                End If
+
+                btn_tmb_ulasan.Enabled = True
+                btn_btl.Enabled = True
+                TextBox8.ReadOnly = False
+
+                Call koleksiPribadi()
+                Call tampilGrid()
+                e.Handled = True
+            Else
+                MsgBox("Buku Tidak Ditemukan, Harap Masukkan id yang sesuai", MsgBoxStyle.Information, "Informasi")
+
+                Call hapus()
+                Call tampilGrid()
+                TextBox1.Clear()
+                PictureBox1.Image = Nothing
+
+                btn_pinjam.Enabled = False
+
+                btn_tmb_ulasan.Enabled = False
+                btn_btl.Enabled = True
+                TextBox8.ReadOnly = True
+
+                btn_tmb_koleksi.Enabled = False
+                btn_hps_koleksi.Enabled = False
+            End If
+        End If
+    End Sub
+
+    'kodingan button
+
+    Private Sub btn_tmb_ulasan_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btn_tmb_ulasan.Click
+        If TextBox8.Text = "" Then
+            MsgBox("Ulasan tidak boleh kosong", MsgBoxStyle.Information, "Informasi")
+
+        Else
+            If MessageBox.Show("Ulasan tidak dapat dihapus kembali!", "WARNING", MessageBoxButtons.YesNo) = Windows.Forms.DialogResult.Yes Then
+
+                Dim tambahUlasan As String = ("insert into ulasan_buku values('', '" & home.Panel1.Text & "', '" & TextBox1.Text & "', '" & TextBox8.Text & "')")
+                cmd = New OdbcCommand(tambahUlasan, conn)
+                cmd.ExecuteNonQuery()
+
+                MsgBox("Ulasan berhasil ditambahkan...", MsgBoxStyle.Information, "INFORMASI")
+
+                Call tampilGrid()
+            End If
+        End If
+        TextBox8.Clear()
+        TextBox8.Focus()
+    End Sub
+
+    Private Sub btn_tmb_koleksi_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btn_tmb_koleksi.Click
+        If TextBox1.Text = "" Then
+            MsgBox("Ulasan tidak boleh kosong", MsgBoxStyle.Information, "Informasi")
+
+        Else
+            cmd = New OdbcCommand("insert into koleksi_pribadi values('', '" & home.Panel1.Text & "','" & TextBox1.Text & "')", conn)
+            dr = cmd.ExecuteReader
+            dr.Read()
+            MsgBox("Koleksi Berhasil Ditambahkan...", MsgBoxStyle.Information, "INFORMASI")
+            Call tampil_koleksi_pribadi()
+            btn_hps_koleksi.Visible = True
+            btn_tmb_koleksi.Visible = False
+        End If
+    End Sub
+
+    Private Sub btn_hps_koleksi_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btn_hps_koleksi.Click
+        If TextBox1.Text = "" Then
+            MsgBox("Ulasan tidak boleh kosong", MsgBoxStyle.Information, "Informasi")
+
+        Else
+            cmd = New OdbcCommand("delete from koleksi_pribadi where id_user='" & home.Panel1.Text & "' and id_buku='" & TextBox1.Text & "'", conn)
+            dr = cmd.ExecuteReader
+            dr.Read()
+            MsgBox("Koleksi Berhasil Dihapus...", MsgBoxStyle.Information, "INFORMASI")
+            Call tampil_koleksi_pribadi()
+            btn_hps_koleksi.Visible = False
+            btn_tmb_koleksi.Visible = True
+        End If
+    End Sub
+
+    Private Sub btn_pinjam_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btn_pinjam.Click
+        'Call cekPeminjaman()
+        If dr("hitungPeminjaman") >= 3 Then
+            MsgBox("Anda sudah meminjam 3 buku, harap kembalikan buku terlebih dahulu", MsgBoxStyle.Information, "informasi")
+        Else
+            peminjaman.Show()
+            Call koneksi()
+            cmd = New OdbcCommand("select * from buku where id_buku='" & TextBox1.Text & "'", conn)
+            dr = cmd.ExecuteReader
+            dr.Read()
+            If dr.HasRows Then
+                peminjaman.btn_simpan.Enabled = True
+
+                peminjaman.TextBox2.Text = dr("id_buku")
+                peminjaman.TextBox8.Text = dr("judul")
+                peminjaman.TextBox3.Text = dr("ketersediaan_buku")
+
+                On Error Resume Next
+                peminjaman.PictureBox1.Load(dr("gambar"))
+                peminjaman.PictureBox1.SizeMode = PictureBoxSizeMode.StretchImage
+            End If
+            Me.Close()
+        End If
+    End Sub
+
+    Private Sub btn_btl_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btn_btl.Click
+        TextBox8.Clear()
+    End Sub
+
+    Private Sub btn_tutup_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btn_tutup.Click
+        Me.Close()
+    End Sub
+
+    Private Sub btn_cari_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btn_cari.Click
+        list_buku.Show()
+    End Sub
+End Class
