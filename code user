@@ -1,0 +1,177 @@
+Imports System.Data.Odbc
+Public Class user
+
+    Private Sub user_Load(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles MyBase.Load
+        Call tampilGrid()
+    End Sub
+    Private Sub Button4_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button4.Click
+        Me.Close()
+    End Sub
+    'kodingan untuk tampilgrid
+    Sub tampilGrid()
+        Call koneksi()
+        da = New OdbcDataAdapter("select id_user, nama_lengkap, status,  email, alamat, no_telepon from user", conn)
+        ds = New DataSet
+        da.Fill(ds)
+        DGV.DataSource = ds.Tables(0)
+        DGV.ReadOnly = True
+        DGV.Columns("id_user").Width = 100
+        DGV.Columns("nama_lengkap").Width = 120
+        DGV.Columns("status").Width = 95
+        DGV.Columns("email").Width = 100
+        DGV.Columns("alamat").Width = 100
+        DGV.Columns("no_telepon").Width = 100
+    End Sub
+
+    Sub panggilKode()
+        Call koneksi()
+        cmd = New OdbcCommand("select * from user where id_user='" & TextBox1.Text & "'", conn)
+        dr = cmd.ExecuteReader
+        dr.Read()
+    End Sub
+    Sub panggildata()
+        On Error Resume Next
+        TextBox2.Text = dr("nama_lengkap")
+        TextBox3.Text = dr("password")
+        ComboBox1.Text = dr("status")
+        TextBox4.Text = dr("email")
+        TextBox5.Text = dr("no_telepon")
+        TextBox6.Text = dr("alamat")
+    End Sub
+
+    Sub hapus()
+        TextBox2.Clear()
+        TextBox3.Clear()
+        ComboBox1.Text = ""
+        TextBox4.Clear()
+        TextBox5.Clear()
+        TextBox6.Clear()
+    End Sub
+
+    Sub caridata()
+        Call koneksi()
+        da = New OdbcDataAdapter("select id_user, nama_lengkap, status, email, alamat, no_telepon from user where id_user like '%" & TextBox7.Text & "%' or nama_lengkap like '%" & TextBox7.Text & "%' or email like '%" & TextBox7.Text & "%' or alamat like '%" & TextBox7.Text & "%' or status like '%" & TextBox7.Text & "%' or no_telepon like '%" & TextBox7.Text & "%'", conn)
+        ds = New DataSet
+        da.Fill(ds)
+        DGV.DataSource = ds.Tables(0)
+        DGV.ReadOnly = True
+    End Sub
+
+    Private Sub TextBox1_KeyPress(ByVal sender As Object, ByVal e As System.Windows.Forms.KeyPressEventArgs) Handles TextBox1.KeyPress
+        TextBox1.MaxLength = 20
+
+        If e.KeyChar = Chr(13) Then
+            Call panggilKode()
+            TextBox2.Focus()
+            e.Handled = True
+
+            If dr.HasRows Then
+                Call panggildata()
+            Else
+                Call hapus()
+            End If
+        End If
+    End Sub
+    Private Sub TextBox2_KeyPress(ByVal sender As Object, ByVal e As System.Windows.Forms.KeyPressEventArgs) Handles TextBox2.KeyPress
+        TextBox2.MaxLength = 20
+
+
+        If e.KeyChar = Chr(13) Then
+            TextBox3.Focus()
+            e.Handled = True
+        End If
+    End Sub
+    Private Sub TextBox3_KeyPress(ByVal sender As Object, ByVal e As System.Windows.Forms.KeyPressEventArgs) Handles TextBox3.KeyPress
+        TextBox3.MaxLength = 20
+
+
+        If e.KeyChar = Chr(13) Then
+            ComboBox1.Focus()
+            e.Handled = True
+        End If
+    End Sub
+
+    Private Sub TextBox4_KeyPress(ByVal sender As Object, ByVal e As System.Windows.Forms.KeyPressEventArgs) Handles TextBox4.KeyPress
+        TextBox4.MaxLength = 20
+
+
+        If e.KeyChar = Chr(13) Then
+            TextBox5.Focus()
+            e.Handled = True
+        End If
+    End Sub
+
+    Private Sub TextBox5_KeyPress(ByVal sender As Object, ByVal e As System.Windows.Forms.KeyPressEventArgs) Handles TextBox5.KeyPress
+        TextBox5.MaxLength = 20
+
+
+        If e.KeyChar = Chr(13) Then
+            TextBox6.Focus()
+            e.Handled = True
+        End If
+    End Sub
+
+    Private Sub TextBox6_KeyPress(ByVal sender As Object, ByVal e As System.Windows.Forms.KeyPressEventArgs) Handles TextBox6.KeyPress
+        TextBox6.MaxLength = 20
+
+
+        If e.KeyChar = Chr(13) Then
+            Button1.Focus()
+            e.Handled = True
+        End If
+    End Sub
+
+    Private Sub ComboBox1_SelectedIndexChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles ComboBox1.SelectedIndexChanged
+        TextBox4.Focus()
+    End Sub
+    Private Sub Button1_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button1.Click
+        If TextBox1.Text = "" Or TextBox2.Text = "" Or TextBox3.Text = "" Or TextBox4.Text = "" Or TextBox5.Text = "" Or TextBox6.Text = "" Or ComboBox1.Text = "" Then
+            MsgBox("Harap isi semua data!!", MsgBoxStyle.Information, "Informasi")
+        Else
+
+            Call panggilKode()
+
+            If Not dr.HasRows Then
+                Dim simpan As String = "insert into user values('" & TextBox1.Text & "', '" & TextBox2.Text & "', '" & TextBox3.Text & "', '" & ComboBox1.Text & "', '" & TextBox4.Text & "', '" & TextBox6.Text & "', '" & TextBox5.Text & "')"
+                cmd = New OdbcCommand(simpan, conn)
+                cmd.ExecuteNonQuery()
+                MsgBox("Data Berhasil Ditambahkan!!", MsgBoxStyle.Information, "Informasi")
+            Else
+                Dim edit As String = "update user set nama_lengkap='" & TextBox2.Text & "', password='" & TextBox3.Text & "', status='" & ComboBox1.Text & "', email='" & TextBox4.Text & "', alamat='" & TextBox6.Text & "', no_telepon='" & TextBox5.Text & "' where id_user='" & TextBox1.Text & "'"
+                cmd = New OdbcCommand(edit, conn)
+                cmd.ExecuteNonQuery()
+                MsgBox("Data Berhasil Diedit!!", MsgBoxStyle.Information, "Informasi")
+            End If
+            Call hapus()
+            Call tampilGrid()
+            'Call TampilMember()
+            TextBox1.Clear()
+            TextBox1.Focus()
+        End If
+    End Sub
+    Private Sub Button2_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button2.Click
+        If TextBox1.Text = "" Or TextBox2.Text = "" Or TextBox3.Text = "" Or TextBox4.Text = "" Or TextBox5.Text = "" Or TextBox6.Text = "" Or ComboBox1.Text = "" Then
+            MsgBox("Harap isi semua data!!", MsgBoxStyle.Information, "Informasi")
+        Else
+            If MessageBox.Show("Yakin data ingin dihapus?", "WARNING", MessageBoxButtons.YesNo) = Windows.Forms.DialogResult.Yes Then
+                Dim edit As String = "delete from user where id_user='" & TextBox1.Text & "'"
+                cmd = New OdbcCommand(edit, conn)
+                cmd.ExecuteNonQuery()
+                MsgBox("Data Berhasil Dihapus!!", MsgBoxStyle.Information, "Informasi")
+            End If
+            Call hapus()
+            Call tampilGrid()
+            'Call TampilMember()
+            TextBox1.Clear()
+            TextBox1.Focus()
+        End If
+    End Sub
+    Private Sub Button3_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button3.Click
+        Call hapus()
+        TextBox1.Clear()
+        TextBox1.Focus()
+    End Sub
+    Private Sub TextBox7_TextChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles TextBox7.TextChanged
+        Call caridata()
+    End Sub
+End Class
