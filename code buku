@@ -1,0 +1,263 @@
+Imports System.Data.Odbc
+
+Public Class buku
+
+    Private Sub buku_Load(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles MyBase.Load
+        Call tampilKategori()
+        Call tampilGrid()
+    End Sub
+
+    'kodingan variabel
+
+    Dim idKategori As String
+
+    'kodingan sub
+
+    Sub hapus()
+        TextBox2.Clear()
+        TextBox3.Clear()
+        TextBox4.Clear()
+        TextBox5.Clear()
+        TextBox6.Clear()
+        TextBox7.Clear()
+        TextBox8.Clear()
+        ComboBox1.Text = ""
+        RadioButton1.Checked = False
+        RadioButton2.Checked = False
+    End Sub
+
+    Sub panggilKode()
+        Call koneksi()
+        cmd = New OdbcCommand("select * from buku inner join kategori_buku on buku.id_kategori = kategori_buku.id_kategori where buku.id_buku='" & TextBox1.Text & "'", conn)
+        dr = cmd.ExecuteReader
+        dr.Read()
+    End Sub
+
+    Sub panggilData()
+        TextBox2.Text = dr("judul")
+        TextBox3.Text = dr("penulis")
+        TextBox4.Text = dr("penerbit")
+        TextBox5.Text = dr("tahun_terbit")
+        TextBox6.Text = dr("harga")
+        TextBox7.Text = dr("lokasi")
+        TextBox8.Text = dr("gambar")
+        ComboBox1.Text = dr("nama_kategori")
+
+        If dr("ketersediaan_buku") = "Tersedia" Then
+            RadioButton1.Checked = True
+        ElseIf dr("ketersediaan_buku") = "Tidak Tersedia" Then
+            RadioButton2.Checked = True
+        End If
+    End Sub
+
+    Sub tampilKategori()
+        Call koneksi()
+        cmd = New OdbcCommand("select * from kategori_buku", conn)
+        dr = cmd.ExecuteReader
+        Do While dr.Read
+            ComboBox1.Items.Add(dr("nama_kategori"))
+        Loop
+    End Sub
+
+    Sub tampilGrid()
+        Call koneksi()
+        da = New OdbcDataAdapter("select * from buku", conn)
+        ds = New DataSet
+        da.Fill(ds)
+        DGV.DataSource = ds.Tables(0)
+        DGV.ReadOnly = True
+    End Sub
+
+    Sub ubahKategori()
+        'kodingan mengubah nama kategori menjadi id
+        Call koneksi()
+        cmd = New OdbcCommand("select * from kategori_buku where nama_kategori='" & ComboBox1.Text & "'", conn)
+        dr = cmd.ExecuteReader
+        dr.Read()
+        On Error Resume Next
+        idKategori = dr("id_kategori")
+    End Sub
+
+    Sub gambar() 'untuk menload gambar dan mengatur sizemode menjadi strecth
+        On Error Resume Next
+        PictureBox1.Load(TextBox8.Text)
+        PictureBox1.SizeMode = PictureBoxSizeMode.StretchImage
+    End Sub
+
+    'kodingan textbox
+
+    Private Sub TextBox1_KeyPress_1(ByVal sender As System.Object, ByVal e As System.Windows.Forms.KeyPressEventArgs) Handles TextBox1.KeyPress
+        TextBox1.MaxLength = 20
+
+        If e.KeyChar = Chr(13) Then
+            TextBox2.Focus()
+            e.Handled = True
+            Call panggilKode()
+
+            If dr.HasRows Then
+                Call panggilData()
+            Else
+                Call hapus()
+            End If
+        End If
+    End Sub
+
+    Private Sub TextBox2_KeyPress_1(ByVal sender As System.Object, ByVal e As System.Windows.Forms.KeyPressEventArgs) Handles TextBox2.KeyPress
+        TextBox2.MaxLength = 50
+
+        If e.KeyChar = Chr(13) Then
+            TextBox3.Focus()
+            e.Handled = True
+        End If
+    End Sub
+
+    Private Sub TextBox3_KeyPress_1(ByVal sender As System.Object, ByVal e As System.Windows.Forms.KeyPressEventArgs) Handles TextBox3.KeyPress
+        TextBox3.MaxLength = 50
+
+        If e.KeyChar = Chr(13) Then
+            TextBox4.Focus()
+            e.Handled = True
+        End If
+    End Sub
+
+    Private Sub TextBox4_KeyPress_1(ByVal sender As System.Object, ByVal e As System.Windows.Forms.KeyPressEventArgs) Handles TextBox4.KeyPress
+        TextBox4.MaxLength = 50
+
+        If e.KeyChar = Chr(13) Then
+            TextBox5.Focus()
+            e.Handled = True
+        End If
+    End Sub
+
+    Private Sub TextBox5_KeyPress_1(ByVal sender As System.Object, ByVal e As System.Windows.Forms.KeyPressEventArgs) Handles TextBox5.KeyPress
+        TextBox5.MaxLength = 20
+
+        If e.KeyChar = Chr(13) Then
+            ComboBox1.Focus()
+            e.Handled = True
+        End If
+    End Sub
+
+    Private Sub TextBox6_KeyPress(ByVal sender As System.Object, ByVal e As System.Windows.Forms.KeyPressEventArgs) Handles TextBox6.KeyPress
+        TextBox6.MaxLength = 20
+
+        If e.KeyChar = Chr(13) Then
+            TextBox7.Focus()
+            e.Handled = True
+        End If
+    End Sub
+
+    Private Sub TextBox7_KeyPress(ByVal sender As System.Object, ByVal e As System.Windows.Forms.KeyPressEventArgs) Handles TextBox7.KeyPress
+        TextBox7.MaxLength = 20
+
+        If e.KeyChar = Chr(13) Then
+            btn_cari_foto.Focus()
+            e.Handled = True
+        End If
+    End Sub
+
+    Private Sub TextBox8_TextChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles TextBox8.TextChanged
+        Call gambar()
+    End Sub
+
+    'kodingan combobox
+
+    Private Sub ComboBox1_SelectedIndexChanged_1(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles ComboBox1.SelectedIndexChanged
+        TextBox6.Focus()
+    End Sub
+
+    'kodingan button
+
+    Private Sub btn_cari_foto_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btn_cari_foto.Click
+
+        OpenFileDialog1.Filter = "(Image Files)|*.jpg;*.png"
+        OpenFileDialog1.ShowDialog()
+        PictureBox1.Text = PictureBox1.Text + "<img>" + OpenFileDialog1.FileName + "</img>"
+        TextBox8.Text = OpenFileDialog1.FileName
+    End Sub
+
+    Private Sub Button1_Click_1(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button1.Click
+        If TextBox1.Text = "" Or TextBox2.Text = "" Or TextBox3.Text = "" Or TextBox4.Text = "" Or TextBox5.Text = "" Or TextBox6.Text = "" Or TextBox7.Text = "" Or TextBox8.Text = "" Or ComboBox1.Text = "" Then
+            MsgBox("Harap isi semua data!", MsgBoxStyle.Information, "Informasi")
+
+        ElseIf RadioButton1.Checked = False And RadioButton2.Checked = False Then
+            MsgBox("Harap Pilih Ketersediaan buku!", MsgBoxStyle.Information, "Informasi")
+
+        Else
+
+            Call ubahKategori()
+            If idKategori = "" Then
+                MsgBox("Kategori Tidak Ditemukan", MsgBoxStyle.Information, "Informasi")
+                ComboBox1.Text = ""
+                ComboBox1.Focus()
+                Exit Sub
+            End If
+
+            Dim newtext As String
+            Dim oldtext As String = TextBox8.Text
+            newtext = oldtext.Replace("\", "\\")
+
+            Dim ketersediaan_buku As String
+            If RadioButton1.Checked = True Then
+                ketersediaan_buku = "Tersedia"
+            Else
+                ketersediaan_buku = "Tidak Tersedia"
+            End If
+
+            Call panggilKode()
+
+            If Not dr.HasRows Then
+                Call ubahKategori()
+                Dim simpan As String = "insert into buku values('" & TextBox1.Text & "', '" & idKategori & "', '" & TextBox2.Text & "', '" & TextBox3.Text & "', '" & TextBox4.Text & "', '" & TextBox5.Text & "', '" & ketersediaan_buku & "', '" & TextBox6.Text & "', '" & TextBox7.Text & "', '" & newtext & "')"
+                cmd = New OdbcCommand(simpan, conn)
+                cmd.ExecuteNonQuery()
+                MsgBox("Data berhasil disimpan!", MsgBoxStyle.Information, "Informasi")
+            Else
+                Call ubahKategori()
+                Dim edit As String = "update buku set id_kategori='" & idKategori & "', judul='" & TextBox2.Text & "', penulis='" & TextBox3.Text & "', penerbit='" & TextBox4.Text & "', tahun_terbit='" & TextBox5.Text & "', ketersediaan_buku='" & ketersediaan_buku & "', harga='" & TextBox6.Text & "', lokasi='" & TextBox7.Text & "', gambar='" & newtext & "' where id_buku='" & TextBox1.Text & "'"
+                cmd = New OdbcCommand(edit, conn)
+                cmd.ExecuteNonQuery()
+                MsgBox("Data berhasil diedit!", MsgBoxStyle.Information, "Informasi")
+            End If
+            Call tampilGrid()
+            Call hapus()
+            TextBox1.Clear()
+            TextBox1.Focus()
+            Call tampilGrid_Buku()
+        End If
+    End Sub
+
+    Private Sub Button2_Click_1(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button2.Click
+        If TextBox1.Text = "" Or TextBox2.Text = "" Or TextBox3.Text = "" Or TextBox4.Text = "" Or TextBox5.Text = "" Or ComboBox1.Text = "" Then
+            MsgBox("Harap isi semua data!", MsgBoxStyle.Information, "Informasi")
+        End If
+
+        If MessageBox.Show("Yakin data ingin dihapus?", "Warning!", MessageBoxButtons.YesNo) = Windows.Forms.DialogResult.Yes Then
+            Dim hapus As String = "delete from buku where id_buku='" & TextBox1.Text & "'"
+            cmd = New OdbcCommand(hapus, conn)
+            cmd.ExecuteNonQuery()
+            MsgBox("Data berhasil dihapus!", MsgBoxStyle.Information, "Informasi")
+        End If
+        Call tampilGrid()
+        Call hapus()
+        TextBox1.Clear()
+        TextBox1.Focus()
+        Call tampilGrid_Buku()
+    End Sub
+
+    Private Sub Button3_Click_1(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button3.Click
+        Call hapus()
+        TextBox1.Clear()
+        TextBox1.Focus()
+    End Sub
+
+    Private Sub Button4_Click_1(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button4.Click
+        Me.Close()
+    End Sub
+
+
+
+    Private Sub RadioButton2_CheckedChanged(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles RadioButton2.CheckedChanged
+
+    End Sub
+End Class
